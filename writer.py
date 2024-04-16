@@ -1,4 +1,5 @@
 import asyncio
+import json
 import logging
 
 log_format = "%(levelname)s:%(name)s:%(message)s"
@@ -13,13 +14,20 @@ logger.addHandler(handler)
 async def tcp_echo_client(host, port, token):
     reader, writer = await asyncio.open_connection(host, port)
     reply = await reader.read(200)
+
     logger.debug(reply.decode())
 
     writer.write((token + '\n').encode())
     await writer.drain()
 
     reply = await reader.read(200)
-    logger.debug(reply.decode())
+    reply = reply.decode()
+    logger.debug(reply)
+    auth_response = json.loads(reply.split('\n')[0])
+    if not auth_response:
+        logger.error('Authorization failed')
+        print('Неизвестный токен. Проверьте его или зарегистрируйте заново.')
+        return
 
     message = 'Hello, minechat!'
     writer.write((message + '\n\n').encode())
