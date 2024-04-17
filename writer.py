@@ -12,6 +12,8 @@ logger.addHandler(handler)
 
 
 async def register(host, port, nickname):
+    nickname = nickname.replace('\n', '/n')
+
     reader, writer = await asyncio.open_connection(host, port)
     reply = await reader.read(200)
 
@@ -57,6 +59,8 @@ async def authorize(host, port, token):
 
 
 async def submit_message(writer, message):
+    message = message.replace('\n', '/n')
+
     writer.write((message + '\n\n').encode())
     await writer.drain()
 
