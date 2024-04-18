@@ -3,13 +3,18 @@ import asyncio
 import json
 import logging
 
-log_format = "%(levelname)s:%(name)s:%(message)s"
-formatter = logging.Formatter(log_format)
-handler = logging.StreamHandler()
-handler.setFormatter(formatter)
 logger = logging.getLogger('writer')
-logger.setLevel(logging.DEBUG)
-logger.addHandler(handler)
+
+
+def configure_logger():
+    log_format = "%(levelname)s:%(name)s:%(message)s"
+    formatter = logging.Formatter(log_format)
+
+    handler = logging.StreamHandler()
+    handler.setFormatter(formatter)
+
+    logger.setLevel(logging.DEBUG)
+    logger.addHandler(handler)
 
 
 async def register(host, port, nickname):
@@ -105,6 +110,8 @@ def create_parser():
 
 
 def main():
+    configure_logger()
+
     parser = create_parser()
     parser_args = parser.parse_args()
 
