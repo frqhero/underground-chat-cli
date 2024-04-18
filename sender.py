@@ -3,6 +3,8 @@ import asyncio
 import json
 import logging
 
+BUFFER_SIZE = 200  # ensures that the message is read completely
+
 logger = logging.getLogger('writer')
 
 
@@ -21,21 +23,21 @@ async def register(host, port, nickname):
     nickname = nickname.replace('\n', '/n')
 
     reader, writer = await asyncio.open_connection(host, port)
-    reply = await reader.read(200)
+    reply = await reader.read(BUFFER_SIZE)
 
     logger.debug(reply.decode())
 
     writer.write('\n'.encode())
     await writer.drain()
 
-    reply = await reader.read(200)
+    reply = await reader.read(BUFFER_SIZE)
     reply = reply.decode()
     logger.debug(reply)
 
     writer.write((nickname + '\n').encode())
     await writer.drain()
 
-    reply = await reader.read(200)
+    reply = await reader.read(BUFFER_SIZE)
     reply = reply.decode()
     logger.debug(reply)
 
@@ -46,14 +48,14 @@ async def register(host, port, nickname):
 
 async def authorize(host, port, token):
     reader, writer = await asyncio.open_connection(host, port)
-    reply = await reader.read(200)
+    reply = await reader.read(BUFFER_SIZE)
 
     logger.debug(reply.decode())
 
     writer.write((token + '\n').encode())
     await writer.drain()
 
-    reply = await reader.read(200)
+    reply = await reader.read(BUFFER_SIZE)
     reply = reply.decode()
     logger.debug(reply)
     auth_response = json.loads(reply.split('\n')[0])
