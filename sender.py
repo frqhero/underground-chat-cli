@@ -43,6 +43,9 @@ async def register(host, port, nickname):
 
     registration_response = json.loads(reply.split('\n')[0])
     token = registration_response['account_hash']
+
+    writer.close()
+    await writer.wait_closed()
     return token
 
 
@@ -72,6 +75,9 @@ async def submit_message(writer, message):
     writer.write((message + '\n\n').encode())
     await writer.drain()
     logger.debug(f'Message sent: {message}')
+
+    writer.close()
+    await writer.wait_closed()
 
 
 def create_parser():
