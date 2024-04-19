@@ -4,10 +4,10 @@ from datetime import datetime
 
 import aiofiles
 
+from context_manager import managed_socket
 
-async def tcp_echo_client(host, port, history_file):
-    reader, writer = await asyncio.open_connection(host, port)
 
+async def tcp_echo_client(reader, history_file):
     async with aiofiles.open(history_file, 'a') as file:
         while True:
             try:
@@ -21,10 +21,6 @@ async def tcp_echo_client(host, port, history_file):
                 print(data)
             except Exception as e:
                 print(str(e))
-
-    # print('Close the connection')
-    # writer.close()
-    # await writer.wait_closed()
 
 
 def create_parser():
@@ -52,11 +48,16 @@ def create_parser():
     return parser
 
 
-def main():
+async def main():
     parser = create_parser()
     parser_args = parser.parse_args()
-    asyncio.run(tcp_echo_client(parser_args.host, parser_args.port, parser_args.history))
+    host = parser_args.host
+    port = parser_args.port
+    history = parser_args.history
+
+    async with managed_socket(host, port) as (reader, writer):
+        await tcp_echo_client(reader, history)
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())

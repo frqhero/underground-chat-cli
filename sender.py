@@ -3,6 +3,8 @@ import asyncio
 import json
 import logging
 
+from context_manager import managed_socket
+
 BUFFER_SIZE = 200  # ensures that the message is read completely
 
 logger = logging.getLogger('writer')
@@ -19,10 +21,9 @@ def configure_logger():
     logger.addHandler(handler)
 
 
-async def register(host, port, nickname):
+async def register(reader, writer, nickname):
     nickname = nickname.replace('\n', '/n')
 
-    reader, writer = await asyncio.open_connection(host, port)
     reply = await reader.read(BUFFER_SIZE)
 
     logger.debug(reply.decode())
@@ -44,13 +45,10 @@ async def register(host, port, nickname):
     registration_response = json.loads(reply.split('\n')[0])
     token = registration_response['account_hash']
 
-    writer.close()
-    await writer.wait_closed()
     return token
 
 
-async def authorize(host, port, token):
-    reader, writer = await asyncio.open_connection(host, port)
+async def authorize(reader, writer, token):
     reply = await reader.read(BUFFER_SIZE)
 
     logger.debug(reply.decode())
@@ -65,8 +63,8 @@ async def authorize(host, port, token):
     if not auth_response:
         logger.error('Authorization failed')
         print('Неизвестный токен. Проверьте его или зарегистрируйте заново.')
-        return
-    return writer
+        return False
+    return True
 
 
 async def submit_message(writer, message):
@@ -117,7 +115,7 @@ def create_parser():
     return parser
 
 
-def main():
+async def main():
     configure_logger()
 
     parser = create_parser()
@@ -133,14 +131,16 @@ def main():
         with open('token.txt', 'r') as file:
             token = file.readline().strip()
     if not token:
-        token = asyncio.run(register(host, port, nickname))
+        async with managed_socket(host, port) as (reader, writer):
+            token = await register(reader, writer, nickname)
         with open('token.txt', 'w') as file:
             file.write(token)
-    writer = asyncio.run(authorize(host, port, token))
-    if not writer:
-        raise ConnectionError('Authorization failed')
-    asyncio.run(submit_message(writer, message))
+    async with managed_socket(host, port) as (reader, writer):
+        authorized = await authorize(reader, writer, token)
+        if not authorized:
+            raise ConnectionError('Authorization failed')
+        await submit_message(writer, message)
 
 
 if __name__ == '__main__':
-    main()
+    asyncio.run(main())
